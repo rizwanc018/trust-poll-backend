@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Option {
+  id         String       @id @default(uuid())
+  image_url  String
+  subtitle   String?
+  task_id    String
+  voteCount  Int          @default(0)
+  Task       Task         @relation(fields: [task_id], references: [id])
+  Submission Submission[]
+}
+
+model Submission {
+  id        String @id @default(cuid())
+  worker_id String
+  option_id String
+  task_id   String
+  amount    String
+  Option    Option @relation(fields: [option_id], references: [id])
+  Task      Task   @relation(fields: [task_id], references: [id])
+  Worker    Worker @relation(fields: [worker_id], references: [id])
+
+  @@unique([worker_id, task_id])
+}
+
+model Task {
+  id           String       @id @default(cuid())
+  title        String
+  description  String?
+  user_id      String
+  payment_sign String
+  amount       String
+  Option       Option[]
+  Submission   Submission[]
+  User         User         @relation(fields: [user_id], references: [id])
+}
+
+model User {
+  id      String @id @default(cuid())
+  wallet String @unique
+  Task    Task[]
+}
+
+model Worker {
+  id             String       @id @default(cuid())
+  wallet        String       @unique
+  pending_amount String
+  locked_amount  String
+  Submission     Submission[]
+}
