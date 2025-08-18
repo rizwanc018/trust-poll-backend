@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { PrismaClient } from "../generated/prisma/index.js";
 import jwt from "jsonwebtoken";
-import { authMiddleware } from "../middlewares/authMiddleware.js";
+import { userAuthMiddleware } from "../middlewares/authMiddleware.js";
 import { createTaskInput } from "./types.js";
 // import { supabase } from "../utils/supabaseClient.js";
 
@@ -33,13 +33,12 @@ router.post("/signin", async (req, res) => {
     }
 });
 
-router.post("/task", authMiddleware, async (req, res) => {
+router.post("/task", userAuthMiddleware, async (req, res) => {
     const body = req.body;
 
     const parsedData = createTaskInput.safeParse(body);
 
     if (!parsedData.success) {
-        console.log("🚀 ~ parsedData🚀", parsedData);
         return res.status(400).json({ error: parsedData.error });
     }
 
@@ -63,12 +62,11 @@ router.post("/task", authMiddleware, async (req, res) => {
         });
         return response;
     });
-    console.log("🚀 ~ task🚀", task)
 
     res.status(201).json({ task });
 });
 
-router.get("/task/:taskId", authMiddleware, async (req, res) => {
+router.get("/task/:taskId", userAuthMiddleware, async (req, res) => {
     const { taskId } = req.params;
     const userId = req.userId;
 

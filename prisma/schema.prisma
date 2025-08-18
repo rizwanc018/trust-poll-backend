@@ -10,12 +10,12 @@ datasource db {
 }
 
 model Option {
-  id         String       @id @default(uuid())
-  image_url  String
-  subtitle   String?
-  task_id    String
-  voteCount  Int          @default(0)
-  Task       Task         @relation(fields: [task_id], references: [id])
+  id          String       @id @default(uuid())
+  image_url   String
+  subtitle    String?
+  task_id     String
+  voteCount   Int          @default(0)
+  Task        Task         @relation(fields: [task_id], references: [id])
   Submissions Submission[]
 }
 
@@ -39,20 +39,21 @@ model Task {
   user_id      String
   payment_sign String
   amount       String
+  done         Boolean      @default(false)
   Options      Option[]
   Submissions  Submission[]
-  User        User         @relation(fields: [user_id], references: [id])
+  User         User         @relation(fields: [user_id], references: [id])
 }
 
 model User {
-  id      String @id @default(cuid())
+  id     String @id @default(cuid())
   wallet String @unique
-  Tasks   Task[]
+  Tasks  Task[]
 }
 
 model Worker {
   id             String       @id @default(cuid())
-  wallet        String       @unique
+  wallet         String       @unique
   pending_amount String
   locked_amount  String
   Submissions    Submission[]
