@@ -3,11 +3,11 @@ import { PrismaClient } from "../generated/prisma/index.js";
 import jwt from "jsonwebtoken";
 import { userAuthMiddleware } from "../middlewares/authMiddleware.js";
 import { createTaskInput } from "./types.js";
+import { JWT_SECRET } from "../config.js";
 // import { supabase } from "../utils/supabaseClient.js";
 
 const router = Router();
 const prismaClient = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET;
 
 router.post("/signin", async (req, res) => {
     const hardCodedWallet = "4x2aYepNV7KAX4riSKcQySm9pi6Rp8cSNHJwaf4AtGmY";

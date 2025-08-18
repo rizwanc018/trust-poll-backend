@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt, { type JwtPayload } from "jsonwebtoken";
+import { JWT_SECRET, WORKER_JWT_SECRET } from "../config.js";
 
 
 declare global {
@@ -16,8 +17,6 @@ interface DecodedToken extends JwtPayload {
     workerId?: string;
 }
 
-const WORKER_JWT_SECRET = process.env.JWT_SECRET + "worker";
-const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
     throw new Error("JWT_SECRET is not defined in environment variables");
 }
