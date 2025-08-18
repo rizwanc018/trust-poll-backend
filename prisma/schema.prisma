@@ -16,7 +16,7 @@ model Option {
   task_id    String
   voteCount  Int          @default(0)
   Task       Task         @relation(fields: [task_id], references: [id])
-  Submission Submission[]
+  Submissions Submission[]
 }
 
 model Submission {
@@ -39,15 +39,15 @@ model Task {
   user_id      String
   payment_sign String
   amount       String
-  Option       Option[]
-  Submission   Submission[]
-  User         User         @relation(fields: [user_id], references: [id])
+  Options      Option[]
+  Submissions  Submission[]
+  User        User         @relation(fields: [user_id], references: [id])
 }
 
 model User {
   id      String @id @default(cuid())
   wallet String @unique
-  Task    Task[]
+  Tasks   Task[]
 }
 
 model Worker {
@@ -55,5 +55,5 @@ model Worker {
   wallet        String       @unique
   pending_amount String
   locked_amount  String
-  Submission     Submission[]
+  Submissions    Submission[]
 }
