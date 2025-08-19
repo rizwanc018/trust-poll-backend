@@ -10,7 +10,7 @@ datasource db {
 }
 
 model Option {
-  id          String       @id @default(uuid())
+  id          String       @id @default(cuid())
   image_url   String
   subtitle    String?
   task_id     String
@@ -54,7 +54,7 @@ model User {
 model Worker {
   id             String       @id @default(cuid())
   wallet         String       @unique
-  pending_amount String
-  locked_amount  String
+  pending_amount String       @default("0")
+  locked_amount  String       @default("0")
   Submissions    Submission[]
 }

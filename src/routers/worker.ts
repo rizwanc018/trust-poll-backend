@@ -2,7 +2,7 @@ import { Router } from "express";
 import { PrismaClient } from "../generated/prisma/index.js";
 import jwt from "jsonwebtoken";
 import { workerAuthMiddleware } from "../middlewares/authMiddleware.js";
-import { WORKER_JWT_SECRET } from "../config.js";
+import { TOTAL_DECIMALS, WORKER_JWT_SECRET } from "../config.js";
 import { getNextTaskForWorker } from "../helper/worker.js";
 
 const router = Router();
@@ -81,7 +81,7 @@ router.post("/submission", workerAuthMiddleware, async (req, res) => {
                     task_id: taskId,
                     worker_id: workerId,
                     option_id: optionId,
-                    amount,
+                    amount : amount,
                 },
             });
 
@@ -89,6 +89,24 @@ router.post("/submission", workerAuthMiddleware, async (req, res) => {
                 where: { id: optionId },
                 data: { voteCount: { increment: 1 } },
             });
+
+            const worker = await tx.worker.findUnique({
+                where: { id: workerId },
+                select: { pending_amount: true }
+            });
+
+            if (worker) {
+                const currentPending = Number(worker.pending_amount);
+                const amountToAdd = Number(amount) * TOTAL_DECIMALS;
+                const newPendingAmount = (currentPending + amountToAdd).toString();
+
+                await tx.worker.update({
+                    where: { id: workerId },
+                    data: { 
+                        pending_amount: newPendingAmount
+                    },
+                });
+            }
         });
 
         const nextTask = await getNextTaskForWorker(workerId);
@@ -96,6 +114,35 @@ router.post("/submission", workerAuthMiddleware, async (req, res) => {
         res.status(201).json({ task: nextTask, amount });
     } catch (error) {
         return res.status(500).json({ message: "Error submitting your vote" });
+    }
+});
+
+router.get("/balance", workerAuthMiddleware, async (req, res) => {
+    const workerId = req.workerId as string;
+
+    if (!workerId) {
+        return res.status(400).json({ message: "Worker ID is required" });
+    }
+
+    try {
+        const worker = await prismaClient.worker.findUnique({
+            where: { id: workerId },
+            select: {
+                pending_amount: true,
+                locked_amount: true,
+            },
+        });
+
+        if (!worker) {
+            return res.status(404).json({ message: "Worker not found" });
+        }
+
+        res.json({
+            pending_amount: worker.pending_amount,
+            locked_amount: worker.locked_amount,
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error" });
     }
 });
 

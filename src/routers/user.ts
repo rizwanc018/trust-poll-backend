@@ -3,7 +3,7 @@ import { PrismaClient } from "../generated/prisma/index.js";
 import jwt from "jsonwebtoken";
 import { userAuthMiddleware } from "../middlewares/authMiddleware.js";
 import { createTaskInput } from "./types.js";
-import { JWT_SECRET } from "../config.js";
+import { JWT_SECRET, TOTAL_DECIMALS } from "../config.js";
 // import { supabase } from "../utils/supabaseClient.js";
 
 const router = Router();
@@ -48,7 +48,7 @@ router.post("/task", userAuthMiddleware, async (req, res) => {
                 title: parsedData.data.title,
                 description: parsedData.data.description || "",
                 payment_sign: parsedData.data.signature,
-                amount: "50",
+                amount: (Number("50") * TOTAL_DECIMALS).toString(),
                 user_id: req.userId as string,
             },
         });
