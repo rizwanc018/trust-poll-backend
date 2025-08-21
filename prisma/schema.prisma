@@ -57,4 +57,22 @@ model Worker {
   pending_amount String       @default("0")
   locked_amount  String       @default("0")
   Submissions    Submission[]
+  Payouts        Payouts[]
+}
+
+model Payouts {
+  id        String    @id @default(cuid())
+  worker_id String
+  amount    String
+  status    TxnStatus
+  txn_sign  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Worker    Worker    @relation(fields: [worker_id], references: [id])
+}
+
+enum TxnStatus {
+  PENDING
+  COMPLETED
+  FAILED
 }

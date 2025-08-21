@@ -74,14 +74,14 @@ router.post("/submission", workerAuthMiddleware, async (req, res) => {
         }
 
         const amount = (Number(task.amount) / TOTAL_SUBMISSIONS).toString();
-        
+
         await prismaClient.$transaction(async (tx) => {
             await tx.submission.create({
                 data: {
                     task_id: taskId,
                     worker_id: workerId,
                     option_id: optionId,
-                    amount : amount,
+                    amount: amount,
                 },
             });
 
@@ -92,18 +92,20 @@ router.post("/submission", workerAuthMiddleware, async (req, res) => {
 
             const worker = await tx.worker.findUnique({
                 where: { id: workerId },
-                select: { pending_amount: true }
+                select: { pending_amount: true },
             });
 
             if (worker) {
                 const currentPending = Number(worker.pending_amount);
                 const amountToAdd = Number(amount) * TOTAL_DECIMALS;
-                const newPendingAmount = (currentPending + amountToAdd).toString();
+                const newPendingAmount = (
+                    currentPending + amountToAdd
+                ).toString();
 
                 await tx.worker.update({
                     where: { id: workerId },
-                    data: { 
-                        pending_amount: newPendingAmount
+                    data: {
+                        pending_amount: newPendingAmount,
                     },
                 });
             }
@@ -142,6 +144,91 @@ router.get("/balance", workerAuthMiddleware, async (req, res) => {
             locked_amount: worker.locked_amount,
         });
     } catch (error) {
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+router.post("/withdraw", workerAuthMiddleware, async (req, res) => {
+    const workerId = req.workerId as string;
+
+    if (!workerId) {
+        return res.status(400).json({ message: "Worker ID is required" });
+    }
+
+    try {
+        const result = await prismaClient.$transaction(
+            async (tx) => {
+                // Use raw SQL with SELECT FOR UPDATE to lock the row
+                // This prevents other transactions from reading or modifying this worker until we're done
+                const workers = await tx.$queryRaw<
+                    Array<{
+                        id: string;
+                        wallet: string;
+                        pending_amount: string;
+                        locked_amount: string;
+                    }>
+                >`
+                    SELECT id, wallet, pending_amount, locked_amount 
+                    FROM "Worker" 
+                    WHERE id = ${workerId}
+                    FOR UPDATE
+                `;
+
+                if (!workers || workers.length === 0) {
+                    throw new Error("Worker not found");
+                }
+
+                const worker = workers[0];
+                if (!worker) {
+                    throw new Error("Worker not found");
+                }
+                const pendingAmount = worker.pending_amount;
+                const totalLockedAmount =
+                    Number(worker.locked_amount) + Number(pendingAmount);
+
+                if (Number(pendingAmount) <= 0) {
+                    throw new Error("Not enough balance");
+                }
+
+                // Now update the worker's balance
+                await tx.worker.update({
+                    where: { id: workerId },
+                    data: {
+                        pending_amount: "0",
+                        locked_amount: totalLockedAmount.toString(),
+                    },
+                });
+
+                // Create the payout record
+                const payout = await tx.payouts.create({
+                    data: {
+                        worker_id: workerId,
+                        amount: pendingAmount,
+                        status: "PENDING",
+                        txn_sign: "some-tx-signature",
+                    },
+                });
+
+                return { payout, pendingAmount };
+            },
+            {
+                isolationLevel: "Serializable",
+                timeout: 10000,
+            }
+        );
+
+        res.status(201).json({
+            message: "Withdrawal request created",
+            amount: result.pendingAmount,
+        });
+    } catch (error: any) {
+        if (error.message === "Worker not found") {
+            return res.status(404).json({ message: "Worker not found" });
+        }
+        if (error.message === "No balance to withdraw") {
+            return res.status(400).json({ message: "No balance to withdraw" });
+        }
+        console.error("Withdrawal error:", error);
         res.status(500).json({ message: "Internal server error" });
     }
 });
