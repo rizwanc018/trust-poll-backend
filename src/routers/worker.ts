@@ -3,7 +3,7 @@ import { PrismaClient } from "../generated/prisma/index.js";
 import jwt from "jsonwebtoken";
 import { workerAuthMiddleware } from "../middlewares/authMiddleware.js";
 import { TOTAL_DECIMALS, WORKER_JWT_SECRET } from "../config.js";
-import { getNextTaskForWorker } from "../helper/worker.js";
+import { getNextTaskForWorker, verifySignature } from "../helper/worker.js";
 
 const router = Router();
 const prismaClient = new PrismaClient();
@@ -11,32 +11,42 @@ const prismaClient = new PrismaClient();
 const TOTAL_SUBMISSIONS = 100;
 
 router.post("/signin", async (req, res) => {
-    const hardCodedWallet = "4x2aYepNV7KAX4riSKcQySm9pi6Rp8cSNHJwaf4AtGmY";
+    const { publicKey, signature, message } = req.body;
+    console.log({ publicKey, signature, message });
 
-    const existingWorker = await prismaClient.worker.findUnique({
-        where: {
-            wallet: hardCodedWallet,
-        },
-    });
-
-    if (existingWorker) {
-        const token = jwt.sign(
-            { workerId: existingWorker.id },
-            WORKER_JWT_SECRET!
-        );
-        res.status(200).json({ token });
-    } else {
-        const worker = await prismaClient.worker.create({
-            data: {
-                wallet: hardCodedWallet,
-                pending_amount: "0",
-                locked_amount: "0",
-            },
-        });
-        const token = jwt.sign({ workerId: worker.id }, WORKER_JWT_SECRET!);
-
-        res.status(200).json({ token });
+    if (!publicKey || !signature || !message) {
+        return res.status(400).json({ error: "Missing fields" });
     }
+
+    const isValid = await verifySignature(publicKey, signature, message);
+    console.log("🚀 ~ isValid🚀", isValid)
+
+
+    // const existingWorker = await prismaClient.worker.findUnique({
+    //     where: {
+    //         wallet: publicKey,
+    //     },
+    // });
+
+    // if (existingWorker) {
+    //     const token = jwt.sign(
+    //         { workerId: existingWorker.id },
+    //         WORKER_JWT_SECRET!
+    //     );
+    //     res.status(200).json({ token });
+    // } else {
+    //     const worker = await prismaClient.worker.create({
+    //         data: {
+    //             wallet: publicKey,
+    //             pending_amount: "0",
+    //             locked_amount: "0",
+    //         },
+    //     });
+    //     const token = jwt.sign({ workerId: worker.id }, WORKER_JWT_SECRET!);
+
+    //     res.status(200).json({ token });
+    // }
+    res.status(501).json({ message: "Not implemented" });
 });
 
 router.get("/next-task", workerAuthMiddleware, async (req, res) => {
