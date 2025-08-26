@@ -3,33 +3,42 @@ import { PrismaClient } from "../generated/prisma/index.js";
 import jwt from "jsonwebtoken";
 import { userAuthMiddleware } from "../middlewares/authMiddleware.js";
 import { createTaskInput } from "./types.js";
-import { JWT_EXPIRATION, JWT_SECRET, TOTAL_DECIMALS } from "../config.js";
+import { JWT_EXPIRATION, TOTAL_DECIMALS, USER_JWT_SECRET } from "../config.js";
+import { verifySignature } from "../helper/worker.js";
 // import { supabase } from "../utils/supabaseClient.js";
 
 const router = Router();
 const prismaClient = new PrismaClient();
 
 router.post("/signin", async (req, res) => {
-    const hardCodedWallet = "4x2aYepNV7KAX4riSKcQySm9pi6Rp8cSNHJwaf4AtGmY";
+    const { publicKey, signature, message } = req.body;
 
+    if (!publicKey || !signature || !message) {
+        return res.status(400).json({ error: "Missing fields" });
+    }
+
+    const isValid = await verifySignature(publicKey, signature, message);
+    if (!isValid) {
+        return res.status(401).json({ error: "Invalid signature" });
+    }
     const existingUser = await prismaClient.user.findUnique({
         where: {
-            wallet: hardCodedWallet,
+            wallet: publicKey,
         },
     });
 
     if (existingUser) {
-        const token = jwt.sign({ userId: existingUser.id }, JWT_SECRET!, {
+        const token = jwt.sign({ userId: existingUser.id }, USER_JWT_SECRET!, {
             expiresIn: JWT_EXPIRATION,
         });
         res.status(200).json({ token });
     } else {
         const user = await prismaClient.user.create({
             data: {
-                wallet: hardCodedWallet,
+                wallet: publicKey,
             },
         });
-        const token = jwt.sign({ userId: user.id }, JWT_SECRET!, {
+        const token = jwt.sign({ userId: user.id }, USER_JWT_SECRET!, {
             expiresIn: JWT_EXPIRATION,
         });
 
@@ -90,9 +99,7 @@ router.get("/task/:taskId", userAuthMiddleware, async (req, res) => {
         });
 
         if (!task) {
-            return res
-                .status(404)
-                .json({ error: "Task not found or unauthorized" });
+            return res.status(404).json({ error: "Task not found or unauthorized" });
         }
 
         res.status(200).json({ task });

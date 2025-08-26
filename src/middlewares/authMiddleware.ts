@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt, { type JwtPayload } from "jsonwebtoken";
-import { JWT_SECRET, WORKER_JWT_SECRET } from "../config.js";
+import { USER_JWT_SECRET, WORKER_JWT_SECRET } from "../config.js";
 
 
 declare global {
@@ -17,7 +17,7 @@ interface DecodedToken extends JwtPayload {
     workerId?: string;
 }
 
-if (!JWT_SECRET) {
+if (!USER_JWT_SECRET) {
     throw new Error("JWT_SECRET is not defined in environment variables");
 }
 
@@ -68,86 +68,10 @@ export const userAuthMiddleware = (
     req: Request,
     res: Response,
     next: NextFunction
-) => authenticate(req, res, next, JWT_SECRET, "user");
+) => authenticate(req, res, next, USER_JWT_SECRET, "user");
 
 export const workerAuthMiddleware = (
     req: Request,
     res: Response,
     next: NextFunction
 ) => authenticate(req, res, next, WORKER_JWT_SECRET, "worker");
-
-// import type { Request, Response, NextFunction } from "express";
-// import jwt, { type JwtPayload } from "jsonwebtoken";
-// import { WORKER_JWT_SECRET } from "../routers/worker.js";
-
-// // Extend Express Request interface to include userId
-// declare global {
-//     namespace Express {
-//         interface Request {
-//             userId?: string;
-//             workerId?: string;
-//         }
-//     }
-// }
-
-// interface DecodedToken extends JwtPayload {
-//     userId?: string;
-//     workerId?: string;
-// }
-
-// const JWT_SECRET = process.env.JWT_SECRET;
-// if (!JWT_SECRET) {
-//     throw new Error("JWT_SECRET is not defined in environment variables");
-// }
-
-// export const userAuthMiddleware = (
-//     req: Request,
-//     res: Response,
-//     next: NextFunction
-// ) => {
-//     try {
-//         const authHeader = req.headers["authorization"];
-//         if (!authHeader)
-//             return res
-//                 .status(401)
-//                 .json({ message: "Authorization header missing" });
-
-//         const token = authHeader.split(" ")[1];
-//         if (!token) return res.status(401).json({ message: "Unauthorized" });
-
-//         const decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
-//         if (!decoded.userId)
-//             return res.status(401).json({ message: "Invalid token payload" });
-
-//         req.userId = decoded.userId;
-//         next();
-//     } catch (error) {
-//         return res.status(401).json({ message: "Unauthorized" });
-//     }
-// };
-
-// export const workerAuthMiddleware = (
-//     req: Request,
-//     res: Response,
-//     next: NextFunction
-// ) => {
-//     try {
-//         const authHeader = req.headers["authorization"];
-//         if (!authHeader)
-//             return res
-//                 .status(401)
-//                 .json({ message: "Authorization header missing" });
-
-//         const token = authHeader.split(" ")[1];
-//         if (!token) return res.status(401).json({ message: "Unauthorized" });
-
-//         const decoded = jwt.verify(token, WORKER_JWT_SECRET) as DecodedToken;
-//         if (!decoded.workerId)
-//             return res.status(401).json({ message: "Invalid token payload" });
-
-//         req.workerId = decoded.workerId;
-//         next();
-//     } catch (error) {
-//         return res.status(401).json({ message: "Unauthorized" });
-//     }
-// };

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { PrismaClient } from "../generated/prisma/index.js";
 import jwt from "jsonwebtoken";
 import { workerAuthMiddleware } from "../middlewares/authMiddleware.js";
-import { TOTAL_DECIMALS, WORKER_JWT_SECRET } from "../config.js";
+import { JWT_EXPIRATION, TOTAL_DECIMALS, WORKER_JWT_SECRET } from "../config.js";
 import { getNextTaskForWorker, verifySignature } from "../helper/worker.js";
 
 const router = Router();
@@ -12,41 +12,40 @@ const TOTAL_SUBMISSIONS = 100;
 
 router.post("/signin", async (req, res) => {
     const { publicKey, signature, message } = req.body;
-    console.log({ publicKey, signature, message });
 
     if (!publicKey || !signature || !message) {
         return res.status(400).json({ error: "Missing fields" });
     }
 
     const isValid = await verifySignature(publicKey, signature, message);
-    console.log("🚀 ~ isValid🚀", isValid)
+    if (!isValid) {
+        return res.status(401).json({ error: "Invalid signature" });
+    }
+    const existingWorker = await prismaClient.worker.findUnique({
+        where: {
+            wallet: publicKey,
+        },
+    });
 
+    if (existingWorker) {
+        const token = jwt.sign({ workerId: existingWorker.id }, WORKER_JWT_SECRET!, {
+            expiresIn: JWT_EXPIRATION,
+        });
+        res.status(200).json({ token });
+    } else {
+        const worker = await prismaClient.worker.create({
+            data: {
+                wallet: publicKey,
+                pending_amount: "0",
+                locked_amount: "0",
+            },
+        });
+        const token = jwt.sign({ workerId: worker.id }, WORKER_JWT_SECRET!, {
+            expiresIn: JWT_EXPIRATION,
+        });
 
-    // const existingWorker = await prismaClient.worker.findUnique({
-    //     where: {
-    //         wallet: publicKey,
-    //     },
-    // });
-
-    // if (existingWorker) {
-    //     const token = jwt.sign(
-    //         { workerId: existingWorker.id },
-    //         WORKER_JWT_SECRET!
-    //     );
-    //     res.status(200).json({ token });
-    // } else {
-    //     const worker = await prismaClient.worker.create({
-    //         data: {
-    //             wallet: publicKey,
-    //             pending_amount: "0",
-    //             locked_amount: "0",
-    //         },
-    //     });
-    //     const token = jwt.sign({ workerId: worker.id }, WORKER_JWT_SECRET!);
-
-    //     res.status(200).json({ token });
-    // }
-    res.status(501).json({ message: "Not implemented" });
+        res.status(200).json({ token });
+    }
 });
 
 router.get("/next-task", workerAuthMiddleware, async (req, res) => {
@@ -72,9 +71,7 @@ router.post("/submission", workerAuthMiddleware, async (req, res) => {
     const workerId = req.workerId as string;
 
     if (!taskId || !optionId) {
-        return res
-            .status(400)
-            .json({ message: "Task ID and Option ID are required" });
+        return res.status(400).json({ message: "Task ID and Option ID are required" });
     }
     try {
         const task = await getNextTaskForWorker(workerId);
@@ -108,9 +105,7 @@ router.post("/submission", workerAuthMiddleware, async (req, res) => {
             if (worker) {
                 const currentPending = Number(worker.pending_amount);
                 const amountToAdd = Number(amount) * TOTAL_DECIMALS;
-                const newPendingAmount = (
-                    currentPending + amountToAdd
-                ).toString();
+                const newPendingAmount = (currentPending + amountToAdd).toString();
 
                 await tx.worker.update({
                     where: { id: workerId },
@@ -193,8 +188,7 @@ router.post("/withdraw", workerAuthMiddleware, async (req, res) => {
                     throw new Error("Worker not found");
                 }
                 const pendingAmount = worker.pending_amount;
-                const totalLockedAmount =
-                    Number(worker.locked_amount) + Number(pendingAmount);
+                const totalLockedAmount = Number(worker.locked_amount) + Number(pendingAmount);
 
                 if (Number(pendingAmount) <= 0) {
                     throw new Error("Not enough balance");
