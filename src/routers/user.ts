@@ -3,7 +3,7 @@ import { PrismaClient } from "../generated/prisma/index.js";
 import jwt from "jsonwebtoken";
 import { userAuthMiddleware } from "../middlewares/authMiddleware.js";
 import { createTaskInput } from "./types.js";
-import { JWT_SECRET, TOTAL_DECIMALS } from "../config.js";
+import { JWT_EXPIRATION, JWT_SECRET, TOTAL_DECIMALS } from "../config.js";
 // import { supabase } from "../utils/supabaseClient.js";
 
 const router = Router();
@@ -19,7 +19,9 @@ router.post("/signin", async (req, res) => {
     });
 
     if (existingUser) {
-        const token = jwt.sign({ userId: existingUser.id }, JWT_SECRET!);
+        const token = jwt.sign({ userId: existingUser.id }, JWT_SECRET!, {
+            expiresIn: JWT_EXPIRATION,
+        });
         res.status(200).json({ token });
     } else {
         const user = await prismaClient.user.create({
@@ -27,7 +29,9 @@ router.post("/signin", async (req, res) => {
                 wallet: hardCodedWallet,
             },
         });
-        const token = jwt.sign({ userId: user.id }, JWT_SECRET!);
+        const token = jwt.sign({ userId: user.id }, JWT_SECRET!, {
+            expiresIn: JWT_EXPIRATION,
+        });
 
         res.status(200).json({ token });
     }
@@ -86,7 +90,9 @@ router.get("/task/:taskId", userAuthMiddleware, async (req, res) => {
         });
 
         if (!task) {
-            return res.status(404).json({ error: "Task not found or unauthorized" });
+            return res
+                .status(404)
+                .json({ error: "Task not found or unauthorized" });
         }
 
         res.status(200).json({ task });
@@ -96,13 +102,31 @@ router.get("/task/:taskId", userAuthMiddleware, async (req, res) => {
     }
 });
 
-// router.post("/upload", authMiddleware, async (req, res) => {
-//     const userId = req.userId;
-//     const { data, error } = await supabase.storage
-//         .from("images")
-//         .upload("public/avatar1.png", avatarFile);
-//     console.log(userId);
-//     res.status(200).json({ userId, message: "Uploaded successfully" });
-// });
+router.get("/tasks", userAuthMiddleware, async (req, res) => {
+    const userId = req.userId;
+
+    if (!userId) {
+        return res.status(400).json({ error: "User ID not found" });
+    }
+
+    try {
+        const tasks = await prismaClient.task.findMany({
+            where: {
+                user_id: userId,
+            },
+            include: {
+                Options: true,
+            },
+            orderBy: {
+                createdAt: "desc",
+            },
+        });
+
+        res.status(200).json({ tasks });
+    } catch (error) {
+        console.error("Error fetching tasks:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
 
 export default router;

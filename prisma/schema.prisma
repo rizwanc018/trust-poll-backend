@@ -43,6 +43,7 @@ model Task {
   Options      Option[]
   Submissions  Submission[]
   User         User         @relation(fields: [user_id], references: [id])
+  createdAt    DateTime     @default(now())
 }
 
 model User {
