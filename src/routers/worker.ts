@@ -31,7 +31,10 @@ router.post("/signin", async (req, res) => {
         const token = jwt.sign({ workerId: existingWorker.id }, WORKER_JWT_SECRET!, {
             expiresIn: JWT_EXPIRATION,
         });
-        res.status(200).json({ token });
+        res.status(200).json({ 
+            token,
+            pending_amount: existingWorker.pending_amount 
+        });
     } else {
         const worker = await prismaClient.worker.create({
             data: {
@@ -44,7 +47,10 @@ router.post("/signin", async (req, res) => {
             expiresIn: JWT_EXPIRATION,
         });
 
-        res.status(200).json({ token });
+        res.status(200).json({ 
+            token,
+            pending_amount: worker.pending_amount 
+        });
     }
 });
 
