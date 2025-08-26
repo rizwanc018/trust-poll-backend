@@ -20,14 +20,15 @@ model Option {
 }
 
 model Submission {
-  id        String @id @default(cuid())
+  id        String   @id @default(cuid())
   worker_id String
   option_id String
   task_id   String
   amount    String
-  Option    Option @relation(fields: [option_id], references: [id])
-  Task      Task   @relation(fields: [task_id], references: [id])
-  Worker    Worker @relation(fields: [worker_id], references: [id])
+  Option    Option   @relation(fields: [option_id], references: [id])
+  Task      Task     @relation(fields: [task_id], references: [id])
+  Worker    Worker   @relation(fields: [worker_id], references: [id])
+  createdAt DateTime @default(now())
 
   @@unique([worker_id, task_id])
 }

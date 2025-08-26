@@ -31,9 +31,9 @@ router.post("/signin", async (req, res) => {
         const token = jwt.sign({ workerId: existingWorker.id }, WORKER_JWT_SECRET!, {
             expiresIn: JWT_EXPIRATION,
         });
-        res.status(200).json({ 
+        res.status(200).json({
             token,
-            pending_amount: existingWorker.pending_amount 
+            pending_amount: existingWorker.pending_amount,
         });
     } else {
         const worker = await prismaClient.worker.create({
@@ -47,9 +47,9 @@ router.post("/signin", async (req, res) => {
             expiresIn: JWT_EXPIRATION,
         });
 
-        res.status(200).json({ 
+        res.status(200).json({
             token,
-            pending_amount: worker.pending_amount 
+            pending_amount: worker.pending_amount,
         });
     }
 });
@@ -239,6 +239,74 @@ router.post("/withdraw", workerAuthMiddleware, async (req, res) => {
             return res.status(400).json({ message: "No balance to withdraw" });
         }
         console.error("Withdrawal error:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+router.get("/submission-history", workerAuthMiddleware, async (req, res) => {
+    const workerId = req.workerId as string;
+    const page = Number(req.query.page as string) || 1;
+    const limit = Number(req.query.limit as string) || 10;
+
+    if (!workerId) {
+        return res.status(400).json({ message: "Worker ID is required" });
+    }
+
+    if (limit > 100) {
+        return res.status(400).json({ message: "Limit cannot exceed 100" });
+    }
+
+    try {
+        const skip = (page - 1) * limit;
+
+        const totalCount = await prismaClient.submission.count({
+            where: { worker_id: workerId },
+        });
+
+        const submissions = await prismaClient.submission.findMany({
+            where: { worker_id: workerId },
+            skip,
+            take: limit,
+            orderBy: { createdAt: "desc" },
+            select: {
+                id: true,
+                amount: true,
+                createdAt: true,
+                Task: {
+                    select: {
+                        id: true,
+                        title: true,
+                        description: true,
+                        amount: true,
+                    },
+                },
+                Option: {
+                    select: {
+                        id: true,
+                        image_url: true,
+                        voteCount: true,
+                    },
+                },
+            },
+        });
+
+        const totalPages = Math.ceil(totalCount / limit);
+        const hasNextPage = page < totalPages;
+        const hasPreviousPage = page > 1;
+
+        res.json({
+            submissions,
+            pagination: {
+                currentPage: page,
+                totalPages,
+                totalCount,
+                limit,
+                hasNextPage,
+                hasPreviousPage,
+            },
+        });
+    } catch (error) {
+        console.error("Error fetching submission history:", error);
         res.status(500).json({ message: "Internal server error" });
     }
 });
