@@ -56,14 +56,25 @@ router.post("/task", userAuthMiddleware, async (req, res) => {
             return res.status(400).json({ error: parsedData.error });
         }
 
+        const existingPayment = await prismaClient.taskPayment.findFirst({
+            where: {
+                signature: parsedData.data.signature,
+            },
+        });
+
+        if (existingPayment) {
+            return res.status(400).json({ 
+                error: "Transaction signature already used", 
+                details: "This transaction has already been processed for another task" 
+            });
+        }
+
         const transactionResult = await verifyTransaction(
             parsedData.data.signature,
             parsedData.data.blockhash,
             parsedData.data.lastValidBlockHeight,
             parsedData.data.sender
         );
-        console.log("🚀 ~ transactionResult🚀", transactionResult)
-
 
         if (!transactionResult.confirmed) {
             return res
@@ -89,6 +100,15 @@ router.post("/task", userAuthMiddleware, async (req, res) => {
                     task_id: response.id,
                 })),
             });
+
+            await tx.taskPayment.create({
+                data: {
+                    user_id: req.userId as string,
+                    task_id: response.id,
+                    signature: parsedData.data.signature,
+                },
+            });
+
             return response;
         });
 

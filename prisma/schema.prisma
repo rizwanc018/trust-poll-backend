@@ -45,12 +45,25 @@ model Task {
   Submissions  Submission[]
   User         User         @relation(fields: [user_id], references: [id])
   createdAt    DateTime     @default(now())
+  TaskPayment  TaskPayment?
 }
 
 model User {
-  id     String @id @default(cuid())
-  wallet String @unique
-  Tasks  Task[]
+  id          String        @id @default(cuid())
+  wallet      String        @unique
+  Tasks       Task[]
+  TaskPayment TaskPayment[]
+}
+
+model TaskPayment {
+  id        String @id @default(cuid())
+  user_id   String
+  User      User   @relation(fields: [user_id], references: [id])
+  task_id   String @unique
+  Task      Task   @relation(fields: [task_id], references: [id])
+  signature String
+
+  @@index([signature])
 }
 
 model Worker {
