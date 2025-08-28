@@ -1,4 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
+
 import bs58 from "bs58";
 import nacl from "tweetnacl";
 import { PrismaClient } from "../generated/prisma/index.js";
@@ -20,11 +21,7 @@ export const getNextTaskForWorker = async (workerId: string) => {
     });
 };
 
-export const verifySignature = async (
-    publicKeyString: string,
-    signature: Uint8Array,
-    message: string
-) => {
+export const verifySignature = async (publicKeyString: string, signature: Uint8Array, message: string) => {
     try {
         // Convert the public key string to PublicKey object
         const publicKey = new PublicKey(publicKeyString);
@@ -33,17 +30,10 @@ export const verifySignature = async (
         const messageBytes = new TextEncoder().encode(message);
 
         // Convert signature from Uint8Array or base58 if needed
-        const signatureBytes =
-            signature instanceof Uint8Array
-                ? signature
-                : bs58.decode(signature);
+        const signatureBytes = signature instanceof Uint8Array ? signature : bs58.decode(signature);
 
         // Verify the signature using nacl
-        const verified = nacl.sign.detached.verify(
-            messageBytes,
-            signatureBytes,
-            publicKey.toBytes()
-        );
+        const verified = nacl.sign.detached.verify(messageBytes, signatureBytes, publicKey.toBytes());
 
         return verified;
     } catch (error) {

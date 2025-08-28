@@ -5,6 +5,7 @@ import { userAuthMiddleware } from "../middlewares/authMiddleware.js";
 import { createTaskInput } from "./types.js";
 import { JWT_EXPIRATION, TOTAL_DECIMALS, USER_JWT_SECRET } from "../config.js";
 import { verifySignature } from "../helper/worker.js";
+import { verifyTransaction } from "../helper/user.js";
 // import { supabase } from "../utils/supabaseClient.js";
 
 const router = Router();
@@ -49,34 +50,50 @@ router.post("/signin", async (req, res) => {
 router.post("/task", userAuthMiddleware, async (req, res) => {
     const body = req.body;
 
-    const parsedData = createTaskInput.safeParse(body);
+    try {
+        const parsedData = createTaskInput.safeParse(body);
 
-    if (!parsedData.success) {
-        return res.status(400).json({ error: parsedData.error });
+        if (!parsedData.success) {
+            return res.status(400).json({ error: parsedData.error });
+        }
+
+        const transactionResult = await verifyTransaction(
+            parsedData.data.signature,
+            parsedData.data.blockhash,
+            parsedData.data.lastValidBlockHeight
+        );
+
+        if (!transactionResult.confirmed) {
+            return res
+                .status(400)
+                .json({ error: "Transaction verification failed", details: transactionResult.error });
+        }
+
+        const task = await prismaClient.$transaction(async (tx) => {
+            const response = await tx.task.create({
+                data: {
+                    title: parsedData.data.title,
+                    description: parsedData.data.description || "",
+                    payment_sign: parsedData.data.signature,
+                    amount: (Number("50") * TOTAL_DECIMALS).toString(),
+                    user_id: req.userId as string,
+                },
+            });
+
+            await tx.option.createMany({
+                data: parsedData.data.options.map((option) => ({
+                    image_url: option.image_url,
+                    subtitle: option.subtitle || "",
+                    task_id: response.id,
+                })),
+            });
+            return response;
+        });
+
+        res.status(201).json({ task });
+    } catch (error) {
+        res.status(500).json({ error: "Error creating task" });
     }
-
-    const task = await prismaClient.$transaction(async (tx) => {
-        const response = await tx.task.create({
-            data: {
-                title: parsedData.data.title,
-                description: parsedData.data.description || "",
-                payment_sign: parsedData.data.signature,
-                amount: (Number("50") * TOTAL_DECIMALS).toString(),
-                user_id: req.userId as string,
-            },
-        });
-
-        await tx.option.createMany({
-            data: parsedData.data.options.map((option) => ({
-                image_url: option.image_url,
-                subtitle: option.subtitle || "",
-                task_id: response.id,
-            })),
-        });
-        return response;
-    });
-
-    res.status(201).json({ task });
 });
 
 router.get("/task/:taskId", userAuthMiddleware, async (req, res) => {

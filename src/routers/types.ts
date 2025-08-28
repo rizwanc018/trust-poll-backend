@@ -12,6 +12,8 @@ export const createTaskInput = z.object({
     title: z.string(),
     description: z.string().optional(),
     signature: z.string(),
+    blockhash: z.string(),
+    lastValidBlockHeight: z.number(),
 });
 
 export const createSubmissionInput = z.object({
