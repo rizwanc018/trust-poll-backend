@@ -110,8 +110,7 @@ router.post("/submission", workerAuthMiddleware, async (req, res) => {
 
             if (worker) {
                 const currentPending = Number(worker.pending_amount);
-                const amountToAdd = Number(amount) * TOTAL_DECIMALS;
-                const newPendingAmount = (currentPending + amountToAdd).toString();
+                const newPendingAmount = (currentPending + Number(amount)).toString();
 
                 await tx.worker.update({
                     where: { id: workerId },

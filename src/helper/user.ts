@@ -1,6 +1,6 @@
-import { Connection, LAMPORTS_PER_SOL, clusterApiUrl } from "@solana/web3.js";
+import { Connection,  clusterApiUrl } from "@solana/web3.js";
 import type { Blockhash, TransactionConfirmationStrategy, ParsedInstruction } from "@solana/web3.js";
-import { OWNER_ADDRESS } from "../config.js";
+import { OWNER_ADDRESS, TASK_AMOUNT } from "../config.js";
 
 export const verifyTransaction = async (
     signature: string,
@@ -8,7 +8,6 @@ export const verifyTransaction = async (
     lastValidBlockHeight: number,
     expectedSender?: string,
 ) => {
-    const expectedAmount = 0.1 * LAMPORTS_PER_SOL;
 
     try {
         const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
@@ -79,12 +78,12 @@ export const verifyTransaction = async (
             };
         }
 
-        if (expectedAmount && lamports !== expectedAmount) {
+        if (TASK_AMOUNT && lamports !== TASK_AMOUNT) {
             verificationDetails.verified = false;
             return {
                 confirmed: true,
                 verified: false,
-                error: `Amount mismatch: expected ${expectedAmount}, got ${lamports}`,
+                error: `Amount mismatch: expected ${TASK_AMOUNT}, got ${lamports}`,
                 details: verificationDetails,
             };
         }
