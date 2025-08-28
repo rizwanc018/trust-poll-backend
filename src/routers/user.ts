@@ -49,7 +49,6 @@ router.post("/signin", async (req, res) => {
 
 router.post("/task", userAuthMiddleware, async (req, res) => {
     const body = req.body;
-
     try {
         const parsedData = createTaskInput.safeParse(body);
 
@@ -60,8 +59,11 @@ router.post("/task", userAuthMiddleware, async (req, res) => {
         const transactionResult = await verifyTransaction(
             parsedData.data.signature,
             parsedData.data.blockhash,
-            parsedData.data.lastValidBlockHeight
+            parsedData.data.lastValidBlockHeight,
+            parsedData.data.sender
         );
+        console.log("🚀 ~ transactionResult🚀", transactionResult)
+
 
         if (!transactionResult.confirmed) {
             return res

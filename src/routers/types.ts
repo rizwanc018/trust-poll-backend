@@ -13,6 +13,7 @@ export const createTaskInput = z.object({
     description: z.string().optional(),
     signature: z.string(),
     blockhash: z.string(),
+    sender: z.string(),
     lastValidBlockHeight: z.number(),
 });
 

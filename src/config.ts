@@ -4,3 +4,6 @@ export const JWT_EXPIRATION = "1d";
 
 export const TOTAL_DECIMALS = 1000_000_000;
 
+
+export const OWNER_ADDRESS = process.env.OWNER_ADDRESS as string;
+
