@@ -2,8 +2,25 @@ import { Router } from "express";
 import { PrismaClient } from "../generated/prisma/index.js";
 import jwt from "jsonwebtoken";
 import { workerAuthMiddleware } from "../middlewares/authMiddleware.js";
-import { JWT_EXPIRATION, TOTAL_DECIMALS, WORKER_JWT_SECRET } from "../config.js";
+import {
+    JWT_EXPIRATION,
+    OWNER_ADDRESS as OWNER_PUBLIC_KEY,
+    OWNER_PRIVATE_KEY,
+    WORKER_JWT_SECRET,
+} from "../config.js";
 import { getNextTaskForWorker, verifySignature } from "../helper/worker.js";
+
+import {
+    clusterApiUrl,
+    Connection,
+    Keypair,
+    LAMPORTS_PER_SOL,
+    PublicKey,
+    sendAndConfirmTransaction,
+    SystemProgram,
+    Transaction,
+} from "@solana/web3.js";
+import bs58 from "bs58";
 
 const router = Router();
 const prismaClient = new PrismaClient();
@@ -64,7 +81,7 @@ router.get("/next-task", workerAuthMiddleware, async (req, res) => {
         const task = await getNextTaskForWorker(worker_id);
 
         if (!task) {
-            return res.status(404).json({ message: "No more tasks" });
+            return res.json({ message: "No more tasks" });
         }
         res.json({ task });
     } catch (error) {
@@ -86,7 +103,12 @@ router.post("/submission", workerAuthMiddleware, async (req, res) => {
             return res.status(404).json({ message: "No more tasks" });
         }
 
+        console.log({task_amount: task.amount});
         const amount = (Number(task.amount) / TOTAL_SUBMISSIONS).toString();
+        console.log({amount: Number(task.amount) / TOTAL_SUBMISSIONS});
+        console.log({sol: Number(amount) / LAMPORTS_PER_SOL});
+        
+        
 
         await prismaClient.$transaction(async (tx) => {
             await tx.submission.create({
@@ -160,12 +182,41 @@ router.get("/balance", workerAuthMiddleware, async (req, res) => {
 
 router.post("/withdraw", workerAuthMiddleware, async (req, res) => {
     const workerId = req.workerId as string;
+    console.log("🚀 ~ workerId🚀", workerId);
 
     if (!workerId) {
         return res.status(400).json({ message: "Worker ID is required" });
     }
 
     try {
+        const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+
+        const worker = await prismaClient.worker.findUnique({
+            where: { id: workerId },
+            select: { wallet: true, pending_amount: true },
+        });
+
+        if (!worker) {
+            return res.status(404).json({ message: "Worker not found" });
+        }
+
+        const keypair = Keypair.fromSecretKey(bs58.decode(OWNER_PRIVATE_KEY));
+        console.log("🚀 ~ keypair🚀", keypair);
+        console.log("🚀 ~ JSON.stringify(keypair)", JSON.stringify(keypair));
+
+
+        const transaction = new Transaction().add(
+            SystemProgram.transfer({
+                fromPubkey: new PublicKey(OWNER_PUBLIC_KEY),
+                toPubkey: new PublicKey(worker.wallet),
+                lamports: Number(worker.pending_amount),
+            })
+        );
+
+        const signature = await sendAndConfirmTransaction(connection, transaction, [keypair]);
+        console.log("🚀 ~ signature🚀", signature)
+
+
         const result = await prismaClient.$transaction(
             async (tx) => {
                 // Use raw SQL with SELECT FOR UPDATE to lock the row
@@ -213,8 +264,8 @@ router.post("/withdraw", workerAuthMiddleware, async (req, res) => {
                     data: {
                         worker_id: workerId,
                         amount: pendingAmount,
-                        status: "PENDING",
-                        txn_sign: "some-tx-signature",
+                        status: "COMPLETED",
+                        txn_sign: signature,
                     },
                 });
 

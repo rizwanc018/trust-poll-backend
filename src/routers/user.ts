@@ -6,6 +6,7 @@ import { createTaskInput } from "./types.js";
 import { JWT_EXPIRATION, TASK_AMOUNT, USER_JWT_SECRET } from "../config.js";
 import { verifySignature } from "../helper/worker.js";
 import { verifyTransaction } from "../helper/user.js";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 // import { supabase } from "../utils/supabaseClient.js";
 
 const router = Router();
@@ -63,9 +64,9 @@ router.post("/task", userAuthMiddleware, async (req, res) => {
         });
 
         if (existingPayment) {
-            return res.status(400).json({ 
-                error: "Transaction signature already used", 
-                details: "This transaction has already been processed for another task" 
+            return res.status(400).json({
+                error: "Transaction signature already used",
+                details: "This transaction has already been processed for another task",
             });
         }
 
@@ -82,13 +83,16 @@ router.post("/task", userAuthMiddleware, async (req, res) => {
                 .json({ error: "Transaction verification failed", details: transactionResult.error });
         }
 
+        console.log({ TASK_AMOUNT });
+        console.log({ sol: Number(TASK_AMOUNT) / LAMPORTS_PER_SOL });
+
         const task = await prismaClient.$transaction(async (tx) => {
             const response = await tx.task.create({
                 data: {
                     title: parsedData.data.title,
                     description: parsedData.data.description || "",
                     payment_sign: parsedData.data.signature,
-                    amount: (TASK_AMOUNT).toString(),
+                    amount: TASK_AMOUNT.toString(),
                     user_id: req.userId as string,
                 },
             });
