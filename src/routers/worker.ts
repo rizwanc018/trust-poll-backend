@@ -10,17 +10,8 @@ import {
 } from "../config.js";
 import { getNextTaskForWorker, verifySignature } from "../helper/worker.js";
 
-import {
-    clusterApiUrl,
-    Connection,
-    Keypair,
-    LAMPORTS_PER_SOL,
-    PublicKey,
-    sendAndConfirmTransaction,
-    SystemProgram,
-    Transaction,
-} from "@solana/web3.js";
-import bs58 from "bs58";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { withdrawQueue } from "../helper/bull-mq.js";
 
 const router = Router();
 const prismaClient = new PrismaClient();
@@ -103,12 +94,10 @@ router.post("/submission", workerAuthMiddleware, async (req, res) => {
             return res.status(404).json({ message: "No more tasks" });
         }
 
-        console.log({task_amount: task.amount});
+        console.log({ task_amount: task.amount });
         const amount = (Number(task.amount) / TOTAL_SUBMISSIONS).toString();
-        console.log({amount: Number(task.amount) / TOTAL_SUBMISSIONS});
-        console.log({sol: Number(amount) / LAMPORTS_PER_SOL});
-        
-        
+        console.log({ amount: Number(task.amount) / TOTAL_SUBMISSIONS });
+        console.log({ sol: Number(amount) / LAMPORTS_PER_SOL });
 
         await prismaClient.$transaction(async (tx) => {
             await tx.submission.create({
@@ -182,40 +171,12 @@ router.get("/balance", workerAuthMiddleware, async (req, res) => {
 
 router.post("/withdraw", workerAuthMiddleware, async (req, res) => {
     const workerId = req.workerId as string;
-    console.log("🚀 ~ workerId🚀", workerId);
 
     if (!workerId) {
         return res.status(400).json({ message: "Worker ID is required" });
     }
 
     try {
-        const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
-
-        const worker = await prismaClient.worker.findUnique({
-            where: { id: workerId },
-            select: { wallet: true, pending_amount: true },
-        });
-
-        if (!worker) {
-            return res.status(404).json({ message: "Worker not found" });
-        }
-
-        const keypair = Keypair.fromSecretKey(bs58.decode(OWNER_PRIVATE_KEY));
-        console.log("🚀 ~ keypair🚀", keypair);
-        console.log("🚀 ~ JSON.stringify(keypair)", JSON.stringify(keypair));
-
-
-        const transaction = new Transaction().add(
-            SystemProgram.transfer({
-                fromPubkey: new PublicKey(OWNER_PUBLIC_KEY),
-                toPubkey: new PublicKey(worker.wallet),
-                lamports: Number(worker.pending_amount),
-            })
-        );
-
-        const signature = await sendAndConfirmTransaction(connection, transaction, [keypair]);
-        console.log("🚀 ~ signature🚀", signature)
-
 
         const result = await prismaClient.$transaction(
             async (tx) => {
@@ -247,10 +208,8 @@ router.post("/withdraw", workerAuthMiddleware, async (req, res) => {
                 const totalLockedAmount = Number(worker.locked_amount) + Number(pendingAmount);
 
                 if (Number(pendingAmount) <= 0) {
-                    throw new Error("Not enough balance");
+                    throw new Error("No balance to withdraw");
                 }
-
-                // Now update the worker's balance
                 await tx.worker.update({
                     where: { id: workerId },
                     data: {
@@ -264,9 +223,16 @@ router.post("/withdraw", workerAuthMiddleware, async (req, res) => {
                     data: {
                         worker_id: workerId,
                         amount: pendingAmount,
-                        status: "COMPLETED",
-                        txn_sign: signature,
+                        status: "PENDING",
+                        txn_sign: "signature_placeholder",
                     },
+                });
+
+                await withdrawQueue.add("withdraw", {
+                    workerId,
+                    payoutId: payout.id,
+                    amount: pendingAmount,
+                    toAddress: worker.wallet,
                 });
 
                 return { payout, pendingAmount };
