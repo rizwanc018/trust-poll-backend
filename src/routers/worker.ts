@@ -2,21 +2,12 @@ import { Router } from "express";
 import { PrismaClient } from "../generated/prisma/index.js";
 import jwt from "jsonwebtoken";
 import { workerAuthMiddleware } from "../middlewares/authMiddleware.js";
-import {
-    JWT_EXPIRATION,
-    OWNER_ADDRESS as OWNER_PUBLIC_KEY,
-    OWNER_PRIVATE_KEY,
-    WORKER_JWT_SECRET,
-} from "../config.js";
+import { JWT_EXPIRATION, WORKER_JWT_SECRET, TOTAL_SUBMISSIONS } from "../config.js";
 import { getNextTaskForWorker, verifySignature } from "../helper/worker.js";
-
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { withdrawQueue } from "../helper/bull-mq.js";
 
 const router = Router();
 const prismaClient = new PrismaClient();
-
-const TOTAL_SUBMISSIONS = 100;
 
 router.post("/signin", async (req, res) => {
     const { publicKey, signature, message } = req.body;
@@ -94,10 +85,12 @@ router.post("/submission", workerAuthMiddleware, async (req, res) => {
             return res.status(404).json({ message: "No more tasks" });
         }
 
-        console.log({ task_amount: task.amount });
+        const totalVotes = task.Options.reduce((curr, option) => {
+            const voteCount = option.voteCount || 0;
+            return curr + voteCount;
+        }, 0);
+
         const amount = (Number(task.amount) / TOTAL_SUBMISSIONS).toString();
-        console.log({ amount: Number(task.amount) / TOTAL_SUBMISSIONS });
-        console.log({ sol: Number(amount) / LAMPORTS_PER_SOL });
 
         await prismaClient.$transaction(async (tx) => {
             await tx.submission.create({
@@ -113,6 +106,13 @@ router.post("/submission", workerAuthMiddleware, async (req, res) => {
                 where: { id: optionId },
                 data: { voteCount: { increment: 1 } },
             });
+
+            if (totalVotes + 1 >= TOTAL_SUBMISSIONS) {
+                await tx.task.update({
+                    where: { id: taskId },
+                    data: { done: true },
+                });
+            }
 
             const worker = await tx.worker.findUnique({
                 where: { id: workerId },
@@ -177,7 +177,6 @@ router.post("/withdraw", workerAuthMiddleware, async (req, res) => {
     }
 
     try {
-
         const result = await prismaClient.$transaction(
             async (tx) => {
                 // Use raw SQL with SELECT FOR UPDATE to lock the row

@@ -9,6 +9,7 @@ const prismaClient = new PrismaClient();
 export const getNextTaskForWorker = async (workerId: string) => {
     return prismaClient.task.findFirst({
         where: {
+            done: false,
             Submissions: {
                 none: {
                     worker_id: workerId,

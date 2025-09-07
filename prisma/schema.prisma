@@ -9,6 +9,21 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model Task {
+  id           String       @id @default(cuid())
+  title        String
+  description  String?
+  user_id      String
+  payment_sign String
+  amount       String
+  done         Boolean      @default(false)
+  Options      Option[]
+  Submissions  Submission[]
+  User         User         @relation(fields: [user_id], references: [id])
+  createdAt    DateTime     @default(now())
+  TaskPayment  TaskPayment?
+}
+
 model Option {
   id          String       @id @default(cuid())
   image_url   String
@@ -31,21 +46,6 @@ model Submission {
   createdAt DateTime @default(now())
 
   @@unique([worker_id, task_id])
-}
-
-model Task {
-  id           String       @id @default(cuid())
-  title        String
-  description  String?
-  user_id      String
-  payment_sign String
-  amount       String
-  done         Boolean      @default(false)
-  Options      Option[]
-  Submissions  Submission[]
-  User         User         @relation(fields: [user_id], references: [id])
-  createdAt    DateTime     @default(now())
-  TaskPayment  TaskPayment?
 }
 
 model User {

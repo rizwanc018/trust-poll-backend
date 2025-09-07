@@ -21,11 +21,6 @@ const withdrawQueue = new Queue("withdraw", {
         port: 6379,
     },
     defaultJobOptions: {
-        attempts: 3,
-        backoff: {
-            type: "exponential",
-            delay: 2000,
-        },
         removeOnComplete: true,
         removeOnFail: false,
     },
@@ -79,7 +74,6 @@ const withdrawWorker = new Worker(
 
             return { success: true, signature };
         } catch (error) {
-
             await prismaClient.$transaction(async (tx) => {
                 const worker = await tx.worker.findUnique({
                     where: { id: workerId },
@@ -110,7 +104,6 @@ const withdrawWorker = new Worker(
             });
 
             throw error;
-
         }
     },
     {
