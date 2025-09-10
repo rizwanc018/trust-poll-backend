@@ -83,9 +83,6 @@ router.post("/task", userAuthMiddleware, async (req, res) => {
                 .json({ error: "Transaction verification failed", details: transactionResult.error });
         }
 
-        console.log({ TASK_AMOUNT });
-        console.log({ sol: Number(TASK_AMOUNT) / LAMPORTS_PER_SOL });
-
         const task = await prismaClient.$transaction(async (tx) => {
             const response = await tx.task.create({
                 data: {

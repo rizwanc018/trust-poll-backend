@@ -11,7 +11,7 @@ import {
 import bs58 from "bs58";
 import { PrismaClient } from "../generated/prisma/index.js";
 import { OWNER_ADDRESS, OWNER_PRIVATE_KEY } from "../config.js";
-import { tr } from "zod/locales";
+import { io } from "../index.js";
 
 const prismaClient = new PrismaClient();
 
@@ -116,13 +116,17 @@ const withdrawWorker = new Worker(
 );
 
 withdrawWorker.on("completed", (job) => {
-    console.log("🚀 ~ job data🚀", job.data);
+    io.emit(`payout-${job?.data.payoutId}`, {
+        status: "COMPLETED",
+    });
 
     console.log(`Withdrawal job ${job.id} completed with signature:`, job.returnvalue?.signature);
 });
 
 withdrawWorker.on("failed", (job, error) => {
-    console.log("🚀 ~ job🚀", job);
+    io.emit(`payout-${job?.data.payoutId}`, {
+        status: "FAILED",
+    });
 
     console.error(`Withdrawal job ${job?.id} failed:`, error.message);
 });

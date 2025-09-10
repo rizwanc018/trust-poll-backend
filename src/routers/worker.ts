@@ -5,6 +5,7 @@ import { workerAuthMiddleware } from "../middlewares/authMiddleware.js";
 import { JWT_EXPIRATION, WORKER_JWT_SECRET, TOTAL_SUBMISSIONS } from "../config.js";
 import { getNextTaskForWorker, verifySignature } from "../helper/worker.js";
 import { withdrawQueue } from "../helper/bull-mq.js";
+import { io } from "../index.js";
 
 const router = Router();
 const prismaClient = new PrismaClient();
@@ -73,6 +74,7 @@ router.get("/next-task", workerAuthMiddleware, async (req, res) => {
 
 router.post("/submission", workerAuthMiddleware, async (req, res) => {
     const { taskId, optionId } = req.body;
+
     const workerId = req.workerId as string;
 
     if (!taskId || !optionId) {
@@ -92,7 +94,7 @@ router.post("/submission", workerAuthMiddleware, async (req, res) => {
 
         const amount = (Number(task.amount) / TOTAL_SUBMISSIONS).toString();
 
-        await prismaClient.$transaction(async (tx) => {
+        const submissionResult = await prismaClient.$transaction(async (tx) => {
             await tx.submission.create({
                 data: {
                     task_id: taskId,
@@ -102,7 +104,7 @@ router.post("/submission", workerAuthMiddleware, async (req, res) => {
                 },
             });
 
-            await tx.option.update({
+            const updatedOption = await tx.option.update({
                 where: { id: optionId },
                 data: { voteCount: { increment: 1 } },
             });
@@ -130,6 +132,13 @@ router.post("/submission", workerAuthMiddleware, async (req, res) => {
                     },
                 });
             }
+
+            return { updatedOption };
+        });
+
+
+        io.emit(`poll-${taskId}`, {
+            optionId: optionId,
         });
 
         const nextTask = await getNextTaskForWorker(workerId);
@@ -242,8 +251,10 @@ router.post("/withdraw", workerAuthMiddleware, async (req, res) => {
             }
         );
 
+        console.log("🚀 ~ result🚀", result);
         res.status(201).json({
             message: "Withdrawal request created",
+            payoutId: result.payout.id,
             amount: result.pendingAmount,
         });
     } catch (error: any) {
