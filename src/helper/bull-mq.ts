@@ -10,7 +10,7 @@ import {
 } from "@solana/web3.js";
 import bs58 from "bs58";
 import { PrismaClient } from "../generated/prisma/index.js";
-import { OWNER_ADDRESS, OWNER_PRIVATE_KEY } from "../config.js";
+import { OWNER_ADDRESS, OWNER_PRIVATE_KEY, NETWORK_TYPE } from "../config.js";
 import { io } from "../index.js";
 
 const prismaClient = new PrismaClient();
@@ -34,7 +34,7 @@ const withdrawWorker = new Worker(
         let signature = "signature_placeholder";
 
         try {
-            const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+            const connection = new Connection(clusterApiUrl(NETWORK_TYPE), "confirmed");
             const keypair = Keypair.fromSecretKey(bs58.decode(OWNER_PRIVATE_KEY));
 
             const transaction = new Transaction().add(

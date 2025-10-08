@@ -12,3 +12,5 @@ export const OWNER_ADDRESS = process.env.OWNER_ADDRESS as string;
 export const OWNER_PRIVATE_KEY = process.env.OWNER_PRIVATE_KEY as string;
 
 export const TASK_AMOUNT = 0.1 * LAMPORTS_PER_SOL;
+
+export const NETWORK_TYPE = process.env.NETWORK_TYPE as "devnet" | "testnet" | "mainnet-beta";

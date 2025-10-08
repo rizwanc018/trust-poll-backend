@@ -92,7 +92,7 @@ router.post("/submission", workerAuthMiddleware, async (req, res) => {
             return curr + voteCount;
         }, 0);
 
-        const amount = (Number(task.amount) / TOTAL_SUBMISSIONS).toString();
+        const amount = (Number(task.amount) / (TOTAL_SUBMISSIONS * 2)).toString();
 
         const submissionResult = await prismaClient.$transaction(async (tx) => {
             await tx.submission.create({
@@ -135,7 +135,6 @@ router.post("/submission", workerAuthMiddleware, async (req, res) => {
 
             return { updatedOption };
         });
-
 
         io.emit(`poll-${taskId}`, {
             optionId: optionId,
