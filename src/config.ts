@@ -13,4 +13,4 @@ export const OWNER_PRIVATE_KEY = process.env.OWNER_PRIVATE_KEY as string;
 
 export const TASK_AMOUNT = 0.1 * LAMPORTS_PER_SOL;
 
-export const NETWORK_TYPE = process.env.NETWORK_TYPE as "devnet" | "testnet" | "mainnet-beta";
+export const SOLANA_NETWORK = process.env.SOLANA_NETWORK as "devnet" | "testnet" | "mainnet-beta";

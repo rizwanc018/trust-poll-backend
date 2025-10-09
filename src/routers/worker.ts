@@ -250,7 +250,6 @@ router.post("/withdraw", workerAuthMiddleware, async (req, res) => {
             }
         );
 
-        console.log("🚀 ~ result🚀", result);
         res.status(201).json({
             message: "Withdrawal request created",
             payoutId: result.payout.id,
@@ -309,7 +308,6 @@ router.get("/submission-history", workerAuthMiddleware, async (req, res) => {
                     select: {
                         id: true,
                         image_url: true,
-                        voteCount: true,
                     },
                 },
             },
