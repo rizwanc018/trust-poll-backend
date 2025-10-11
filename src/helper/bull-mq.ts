@@ -120,7 +120,7 @@ withdrawWorker.on("completed", (job) => {
         status: "COMPLETED",
     });
 
-    console.log(`Withdrawal job ${job.id} completed with signature:`, job.returnvalue?.signature);
+    // console.log(`Withdrawal job ${job.id} completed with signature:`, job.returnvalue?.signature);
 });
 
 withdrawWorker.on("failed", (job, error) => {
