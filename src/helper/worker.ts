@@ -2,7 +2,7 @@ import { PublicKey } from "@solana/web3.js";
 
 import bs58 from "bs58";
 import nacl from "tweetnacl";
-import { PrismaClient } from "../generated/prisma/index.js";
+import { PrismaClient } from "@prisma/client";
 
 const prismaClient = new PrismaClient();
 

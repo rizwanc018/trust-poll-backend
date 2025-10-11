@@ -9,9 +9,9 @@ import {
     sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import bs58 from "bs58";
-import { PrismaClient } from "../generated/prisma/index.js";
 import { OWNER_ADDRESS, OWNER_PRIVATE_KEY, SOLANA_NETWORK } from "../config.js";
 import { io } from "../index.js";
+import { PrismaClient } from "@prisma/client";
 
 const prismaClient = new PrismaClient();
 

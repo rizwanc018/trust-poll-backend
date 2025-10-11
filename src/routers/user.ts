@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { PrismaClient } from "../generated/prisma/index.js";
 import jwt from "jsonwebtoken";
 import { userAuthMiddleware } from "../middlewares/authMiddleware.js";
 import { createTaskInput } from "./types.js";
 import { JWT_EXPIRATION, TASK_AMOUNT, USER_JWT_SECRET } from "../config.js";
 import { verifySignature } from "../helper/worker.js";
 import { verifyTransaction } from "../helper/user.js";
+import { PrismaClient } from "@prisma/client";
 // import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 // import { supabase } from "../utils/supabaseClient.js";
 
@@ -83,7 +83,7 @@ router.post("/task", userAuthMiddleware, async (req, res) => {
                 .json({ error: "Transaction verification failed", details: transactionResult.error });
         }
 
-        const task = await prismaClient.$transaction(async (tx) => {
+        const task = await prismaClient.$transaction(async (tx:any) => {
             const response = await tx.task.create({
                 data: {
                     title: parsedData.data.title,

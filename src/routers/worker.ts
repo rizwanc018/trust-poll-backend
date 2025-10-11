@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { PrismaClient } from "../generated/prisma/index.js";
 import jwt from "jsonwebtoken";
 import { workerAuthMiddleware } from "../middlewares/authMiddleware.js";
 import { JWT_EXPIRATION, WORKER_JWT_SECRET, TOTAL_SUBMISSIONS } from "../config.js";
 import { getNextTaskForWorker, verifySignature } from "../helper/worker.js";
 import { withdrawQueue } from "../helper/bull-mq.js";
 import { io } from "../index.js";
+import { PrismaClient } from "@prisma/client";
 
 const router = Router();
 const prismaClient = new PrismaClient();
