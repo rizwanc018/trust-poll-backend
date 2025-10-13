@@ -5,12 +5,11 @@ import { createTaskInput } from "./types.js";
 import { JWT_EXPIRATION, TASK_AMOUNT, USER_JWT_SECRET } from "../config.js";
 import { verifySignature } from "../helper/worker.js";
 import { verifyTransaction } from "../helper/user.js";
-import { PrismaClient } from "@prisma/client";
+import { prismaClient } from "../lib/prisma.js";
 // import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 // import { supabase } from "../utils/supabaseClient.js";
 
 const router = Router();
-const prismaClient = new PrismaClient();
 
 router.post("/signin", async (req, res) => {
     const { publicKey, signature, message } = req.body;

@@ -9,14 +9,23 @@ import { Server } from "socket.io";
 const app = express();
 const server = createServer(app);
 
+const allowedOrigins = process.env.FRONTEND_URL?.split(",").map((url) => url.trim()) || [];
+
 export const io = new Server(server, {
     cors: {
-        origin: process.env.FRONTEND_URL,
+        origin: allowedOrigins,
         methods: ["GET", "POST"],
     },
 });
 
-app.use(cors());
+// app.use(cors());
+app.use(
+    cors({
+        origin: allowedOrigins,
+        methods: ["GET", "POST", "PUT", "DELETE"],
+        credentials: true,
+    })
+);
 app.use(express.json());
 
 app.use("/v1/user", userRouter);

@@ -2,9 +2,7 @@ import { PublicKey } from "@solana/web3.js";
 
 import bs58 from "bs58";
 import nacl from "tweetnacl";
-import { PrismaClient } from "@prisma/client";
-
-const prismaClient = new PrismaClient();
+import { prismaClient } from "../lib/prisma.js";
 
 export const getNextTaskForWorker = async (workerId: string) => {
     return prismaClient.task.findFirst({

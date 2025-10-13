@@ -5,10 +5,9 @@ import { JWT_EXPIRATION, WORKER_JWT_SECRET, TOTAL_SUBMISSIONS } from "../config.
 import { getNextTaskForWorker, verifySignature } from "../helper/worker.js";
 import { withdrawQueue } from "../helper/bull-mq.js";
 import { io } from "../index.js";
-import { PrismaClient } from "@prisma/client";
+import { prismaClient } from "../lib/prisma.js";
 
 const router = Router();
-const prismaClient = new PrismaClient();
 
 router.post("/signin", async (req, res) => {
     const { publicKey, signature, message } = req.body;

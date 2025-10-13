@@ -11,9 +11,7 @@ import {
 import bs58 from "bs58";
 import { OWNER_ADDRESS, OWNER_PRIVATE_KEY, SOLANA_NETWORK } from "../config.js";
 import { io } from "../index.js";
-import { PrismaClient } from "@prisma/client";
-
-const prismaClient = new PrismaClient();
+import { prismaClient } from "../lib/prisma.js";
 
 const withdrawQueue = new Queue("withdraw", {
     connection: {
