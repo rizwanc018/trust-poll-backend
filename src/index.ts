@@ -5,6 +5,7 @@ import userRouter from "./routers/user.js";
 import workerRouter from "./routers/worker.js";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import os from "os";
 
 const app = express();
 const server = createServer(app);
@@ -43,6 +44,22 @@ io.on("connection", (socket) => {
     });
 });
 
-server.listen(8080, () => {
+server.listen(8080, async () => {
     console.log("Server is running on port http://localhost:8080");
+    console.log("Server started at:", new Date().toLocaleString());
+    console.log("Hostname:", os.hostname());
+    console.log("Platform:", os.platform());
+
+    // Fetch geographical location
+    try {
+        const response = await fetch("http://ip-api.com/json/");
+        const locationData = await response.json();
+        console.log("Server Location:", `${locationData.city}, ${locationData.regionName}, ${locationData.country}`);
+        console.log("Coordinates:", `${locationData.lat}, ${locationData.lon}`);
+        console.log("ISP:", locationData.isp);
+    } catch (error) {
+        console.log("Could not fetch geographical location");
+    }
+
+    console.log("-----------------------------------------------------\n");
 });
