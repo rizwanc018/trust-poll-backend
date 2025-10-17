@@ -49,17 +49,7 @@ server.listen(8080, async () => {
     console.log("Server started at:", new Date().toLocaleString());
     console.log("Hostname:", os.hostname());
     console.log("Platform:", os.platform());
-
-    // Fetch geographical location
-    try {
-        const response = await fetch("http://ip-api.com/json/");
-        const locationData = await response.json();
-        console.log("Server Location:", `${locationData.city}, ${locationData.regionName}, ${locationData.country}`);
-        console.log("Coordinates:", `${locationData.lat}, ${locationData.lon}`);
-        console.log("ISP:", locationData.isp);
-    } catch (error) {
-        console.log("Could not fetch geographical location");
-    }
-
+    console.log("Architecture:", os.arch());
+    console.log("CPUs:", os.cpus().length);
     console.log("-----------------------------------------------------\n");
 });
