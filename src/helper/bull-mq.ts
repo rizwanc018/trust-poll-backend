@@ -32,7 +32,14 @@ const withdrawWorker = new Worker(
         let signature = "signature_placeholder";
 
         try {
-            const connection = new Connection(clusterApiUrl(SOLANA_NETWORK), "confirmed");
+            const connection = new Connection(
+                clusterApiUrl(SOLANA_NETWORK, true),
+                {
+                    commitment: "confirmed",
+                    wsEndpoint: "", // Empty string disables WebSocket connections
+                    disableRetryOnRateLimit: false,
+                }
+            );
             const keypair = Keypair.fromSecretKey(bs58.decode(OWNER_PRIVATE_KEY));
 
             const transaction = new Transaction().add(
