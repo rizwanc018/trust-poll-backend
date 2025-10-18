@@ -1,16 +1,15 @@
-import { Connection,  clusterApiUrl } from "@solana/web3.js";
+import { Connection, clusterApiUrl } from "@solana/web3.js";
 import type { Blockhash, TransactionConfirmationStrategy, ParsedInstruction } from "@solana/web3.js";
-import { OWNER_ADDRESS, TASK_AMOUNT } from "../config.js";
+import { OWNER_ADDRESS, SOLANA_NETWORK, TASK_AMOUNT } from "../config.js";
 
 export const verifyTransaction = async (
     signature: string,
     blockhash: Blockhash,
     lastValidBlockHeight: number,
-    expectedSender?: string,
+    expectedSender?: string
 ) => {
-
     try {
-        const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+        const connection = new Connection(clusterApiUrl(SOLANA_NETWORK), "confirmed");
 
         const strategy: TransactionConfirmationStrategy = {
             signature: signature,
@@ -35,12 +34,9 @@ export const verifyTransaction = async (
         }
 
         const transferInstruction = parsedTransaction.transaction.message.instructions.find(
-            (instruction): instruction is ParsedInstruction => 
-                'parsed' in instruction && 
-                instruction.parsed?.type === "transfer" && 
-                instruction.parsed?.info
+            (instruction): instruction is ParsedInstruction =>
+                "parsed" in instruction && instruction.parsed?.type === "transfer" && instruction.parsed?.info
         );
-
 
         if (!transferInstruction) {
             return {

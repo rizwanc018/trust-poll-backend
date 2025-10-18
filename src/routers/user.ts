@@ -51,6 +51,8 @@ router.post("/task", userAuthMiddleware, async (req, res) => {
     const body = req.body;
     try {
         const parsedData = createTaskInput.safeParse(body);
+        console.log("🚀 ~ parsedData🚀", parsedData)
+
 
         if (!parsedData.success) {
             return res.status(400).json({ error: parsedData.error });
@@ -75,6 +77,8 @@ router.post("/task", userAuthMiddleware, async (req, res) => {
             parsedData.data.lastValidBlockHeight,
             parsedData.data.sender
         );
+        console.log("🚀 ~ transactionResult🚀", transactionResult)
+
 
         if (!transactionResult.confirmed) {
             return res
