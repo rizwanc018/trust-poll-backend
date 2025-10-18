@@ -9,7 +9,14 @@ export const verifyTransaction = async (
     expectedSender?: string
 ) => {
     try {
-        const connection = new Connection(clusterApiUrl(SOLANA_NETWORK), "confirmed");
+        const connection = new Connection(
+            clusterApiUrl(SOLANA_NETWORK, true),
+            {
+                commitment: "confirmed",
+                wsEndpoint: "", // Empty string disables WebSocket connections
+                disableRetryOnRateLimit: false,
+            }
+        );
 
         const strategy: TransactionConfirmationStrategy = {
             signature: signature,
