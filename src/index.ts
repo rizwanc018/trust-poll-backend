@@ -37,19 +37,15 @@ app.get("/", (req, res) => {
 });
 
 io.on("connection", (socket) => {
-    // console.log("Client connected:", socket.id);
+    console.log("Client connected:", socket.id);
 
     socket.on("disconnect", () => {
-        // console.log("Client disconnected:", socket.id);
+        console.log("Client disconnected:", socket.id);
     });
 });
 
 server.listen(8080, async () => {
     console.log("Server is running on port http://localhost:8080");
     console.log("Server started at:", new Date().toLocaleString());
-    console.log("Hostname:", os.hostname());
-    console.log("Platform:", os.platform());
-    console.log("Architecture:", os.arch());
-    console.log("CPUs:", os.cpus().length);
     console.log("-----------------------------------------------------\n");
 });

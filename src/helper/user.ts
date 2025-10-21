@@ -1,31 +1,27 @@
-import { Connection,  clusterApiUrl } from "@solana/web3.js";
 import type { Blockhash, TransactionConfirmationStrategy, ParsedInstruction } from "@solana/web3.js";
-import { OWNER_ADDRESS, TASK_AMOUNT } from "../config.js";
+import { OWNER_ADDRESS, TASK_AMOUNT, solanaConnection } from "../config.js";
 
 export const verifyTransaction = async (
     signature: string,
     blockhash: Blockhash,
     lastValidBlockHeight: number,
-    expectedSender?: string,
+    expectedSender?: string
 ) => {
-
     try {
-        const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
-
         const strategy: TransactionConfirmationStrategy = {
             signature: signature,
             blockhash: blockhash,
             lastValidBlockHeight: lastValidBlockHeight,
         };
 
-        const result = await connection.confirmTransaction(strategy, "confirmed");
+        const result = await solanaConnection.confirmTransaction(strategy, "confirmed");
 
         if (result.value.err) {
             console.error("Transaction failed:", result.value.err);
             return { confirmed: false, error: result.value.err };
         }
 
-        const parsedTransaction = await connection.getParsedTransaction(signature, {
+        const parsedTransaction = await solanaConnection.getParsedTransaction(signature, {
             commitment: "confirmed",
             maxSupportedTransactionVersion: 0,
         });
@@ -35,12 +31,9 @@ export const verifyTransaction = async (
         }
 
         const transferInstruction = parsedTransaction.transaction.message.instructions.find(
-            (instruction): instruction is ParsedInstruction => 
-                'parsed' in instruction && 
-                instruction.parsed?.type === "transfer" && 
-                instruction.parsed?.info
+            (instruction): instruction is ParsedInstruction =>
+                "parsed" in instruction && instruction.parsed?.type === "transfer" && instruction.parsed?.info
         );
-
 
         if (!transferInstruction) {
             return {

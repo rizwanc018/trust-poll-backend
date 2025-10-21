@@ -1,7 +1,5 @@
 import { Queue, Worker } from "bullmq";
 import {
-    clusterApiUrl,
-    Connection,
     Keypair,
     PublicKey,
     SystemProgram,
@@ -9,7 +7,7 @@ import {
     sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import bs58 from "bs58";
-import { OWNER_ADDRESS, OWNER_PRIVATE_KEY, SOLANA_NETWORK } from "../config.js";
+import { OWNER_ADDRESS, OWNER_PRIVATE_KEY, solanaConnection } from "../config.js";
 import { io } from "../index.js";
 import { prismaClient } from "../lib/prisma.js";
 
@@ -32,7 +30,6 @@ const withdrawWorker = new Worker(
         let signature = "signature_placeholder";
 
         try {
-            const connection = new Connection(clusterApiUrl(SOLANA_NETWORK), "confirmed");
             const keypair = Keypair.fromSecretKey(bs58.decode(OWNER_PRIVATE_KEY));
 
             const transaction = new Transaction().add(
@@ -43,7 +40,7 @@ const withdrawWorker = new Worker(
                 })
             );
 
-            signature = await sendAndConfirmTransaction(connection, transaction, [keypair]);
+            signature = await sendAndConfirmTransaction(solanaConnection, transaction, [keypair]);
 
             await prismaClient.$transaction(async (tx) => {
                 await tx.payouts.update({
